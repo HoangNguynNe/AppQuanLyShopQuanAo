@@ -1,11 +1,18 @@
 package Model;
 
-import java.text.SimpleDateFormat;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.ResultSet;
+import java.sql.PreparedStatement;
 import java.util.Date;
-
+import java.util.ArrayList;
 
 public class SanPham {
 
+    private static String url = "jdbc:mysql://localhost:3306/quanlishopquanao";
+    private static String user = "root";
+    private static String password = "123456789";
     private String maSanPham, loaiSanPham, tenSanPham, size, mauSanPham;
     private float giaSanPham;
     private int soLuong;
@@ -90,17 +97,162 @@ public class SanPham {
         this.ngayNhap = ngayNhap;
     }
 
-    public void xuatSanPham() {
-        System.out.println("Ma san pham : " + this.maSanPham);
-        System.out.println("Loai san pham : " + this.loaiSanPham);
-        System.out.println("Ten san pham : " + this.tenSanPham);
-        System.out.println("Size : " + this.size);
-        System.out.println("Mau san pham : " + this.mauSanPham);
-        System.out.println("Gia san pham : " + this.giaSanPham);
-        System.out.println("So luong : " + this.soLuong);
-         SimpleDateFormat dateFormat= new SimpleDateFormat("dd/MM/yyyy");
-        System.out.println("Ngay nhap : " + dateFormat.format(this.ngayNhap));
+    public static Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(url, user, password);
+    }
+
+    public void themSanPham() {
+        
+        try (Connection connection = getConnection()) {
+            String sql = "insert into sanpham(maSanPham,loaiSanPham,tenSanPham,size,mauSanPham,giaSanPham,soLuong,ngayNhap)"
+                    + " values (?, ?, ?, ?, ?, ?, ?, ?)";
+            try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+                preparedStatement.setString(1, this.maSanPham);
+                preparedStatement.setString(2, this.loaiSanPham);
+                preparedStatement.setString(3, this.tenSanPham);
+                preparedStatement.setString(4, this.size);
+                preparedStatement.setString(5, this.mauSanPham);
+                preparedStatement.setFloat(6, this.giaSanPham);
+                preparedStatement.setInt(7, this.soLuong);
+                preparedStatement.setDate(8, new java.sql.Date(this.ngayNhap.getTime()));
+
+                preparedStatement.executeUpdate();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
     }
 
+    public ArrayList<SanPham> DanhSachSanPham() {
+        ArrayList<SanPham> arrayTmp = new ArrayList<>();
+        try (Connection connection = getConnection()) {
+            String sql = "select * from sanpham";
+            try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+                ResultSet resultSet = preparedStatement.executeQuery();
+
+                while (resultSet.next()) {
+                    SanPham data = new SanPham(resultSet.getString("maSanPham"),
+                            resultSet.getString("loaiSanPham"),
+                            resultSet.getString("tenSanPham"),
+                            resultSet.getString("size"),
+                            resultSet.getString("mauSanPham"),
+                            resultSet.getFloat("giaSanPham"),
+                            resultSet.getInt("soLuong"),
+                            resultSet.getDate("ngayNhap"));
+
+                    arrayTmp.add(data);
+                }
+
+                return arrayTmp;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return arrayTmp;
+    }
+
+    public void suaSanPham() {
+        try (Connection connection = getConnection()) {
+            String sql = "update sanpham set maSanPham=?,loaiSanPham=?,tenSanPham=?,size=?,mauSanPham=?,giaSanPham=?,soLuong=?,ngayNhap=? where maSanPham=?";
+            try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+                preparedStatement.setString(1, this.maSanPham);
+                preparedStatement.setString(2, this.loaiSanPham);
+                preparedStatement.setString(3, this.tenSanPham);
+                preparedStatement.setString(4, this.size);
+                preparedStatement.setString(5, this.mauSanPham);
+                preparedStatement.setFloat(6, this.giaSanPham);
+                preparedStatement.setInt(7, this.soLuong);
+                preparedStatement.setDate(8, new java.sql.Date(this.ngayNhap.getTime()));
+                preparedStatement.setString(9, this.maSanPham);
+                int rowsUpdated = preparedStatement.executeUpdate();
+                if (rowsUpdated > 0) {
+                    System.out.println("Sản phẩm đã được sửa thành công.");
+                } else {
+                    System.out.println("Không tìm thấy sản phẩm có mã " + this.maSanPham);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void xoaSanPham() {
+        try (Connection connection = getConnection()) {
+            String sql = "delete from sanpham where maSanPham=?";
+            try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+                preparedStatement.setString(1, this.maSanPham);
+                int rowsDeleted = preparedStatement.executeUpdate();
+                if (rowsDeleted > 0) {
+                    System.out.println("Sản phẩm đã được xóa thành công.");
+                } else {
+                    System.out.println("Không tìm thấy sản phẩm có mã " + this.maSanPham);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public ArrayList<SanPham> timSanPhamTheoMaSanPham(String maSP) {
+
+        ArrayList<SanPham> arrayTmp = new ArrayList<>();
+        try (Connection connection = getConnection()) {
+            String sql = "select * from sanpham where maSanPham like ?";
+            try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+                preparedStatement.setString(1, "%" + maSP + "%");
+                ResultSet resultSet = preparedStatement.executeQuery();
+
+                while (resultSet.next()) {
+                    SanPham data = new SanPham(resultSet.getString("maSanPham"),
+                            resultSet.getString("loaiSanPham"),
+                            resultSet.getString("tenSanPham"),
+                            resultSet.getString("size"),
+                            resultSet.getString("mauSanPham"),
+                            resultSet.getFloat("giaSanPham"),
+                            resultSet.getInt("soLuong"),
+                            resultSet.getDate("ngayNhap"));
+
+                    arrayTmp.add(data);
+                }
+
+                return arrayTmp;
+
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return arrayTmp;
+    }
+    
+    public ArrayList<SanPham> timSanPhamTheoTenSanPham(String tenSP) {
+
+        ArrayList<SanPham> arrayTmp = new ArrayList<>();
+        try (Connection connection = getConnection()) {
+            String sql = "select * from sanpham where tenSanPham like ?";
+            try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+                preparedStatement.setString(1, "%" + tenSP + "%");
+                ResultSet resultSet = preparedStatement.executeQuery();
+
+                while (resultSet.next()) {
+                    SanPham data = new SanPham(resultSet.getString("maSanPham"),
+                            resultSet.getString("loaiSanPham"),
+                            resultSet.getString("tenSanPham"),
+                            resultSet.getString("size"),
+                            resultSet.getString("mauSanPham"),
+                            resultSet.getFloat("giaSanPham"),
+                            resultSet.getInt("soLuong"),
+                            resultSet.getDate("ngayNhap"));
+
+                    arrayTmp.add(data);
+                }
+
+                return arrayTmp;
+
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return arrayTmp;
+    }
 }
